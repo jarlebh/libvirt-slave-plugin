@@ -11,6 +11,9 @@
     </f:entry>
     <f:entry title="${%Username}" field="username" help="/plugin/libvirt-slave/help-libvirt-username.html">
         <f:textbox />
+    </f:entry>   
+     <f:entry title="${%Password}" field="password" help="/plugin/libvirt-slave/help-libvirt-password.html">
+        <f:textbox />
     </f:entry>    
     <f:advanced>
         <f:entry title="${%SSH Port}" field="hypervisorSshPort" help="/plugin/libvirt-slave/help-libvirt-hypervisorSshPort.html">
@@ -20,5 +23,5 @@
             <f:textbox default="system"/>
         </f:entry>
     </f:advanced>
-    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="hypervisorType,hypervisorHost,username,hypervisorSshPort,hypervisorSystemUrl"/>
+    <f:validateButton title="${%Test Connection}" progress="${%Testing...}" method="testConnection" with="hypervisorType,hypervisorHost,username,password,hypervisorSshPort,hypervisorSystemUrl"/>
 </j:jelly>

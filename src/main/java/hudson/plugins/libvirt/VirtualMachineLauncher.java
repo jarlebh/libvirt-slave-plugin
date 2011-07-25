@@ -96,25 +96,23 @@ public class VirtualMachineLauncher extends ComputerLauncher {
             buildVirtualMachine();
         }
         try {
-            Map<String, Domain> computers = virtualMachine.getHypervisor().getDomains();
+            Domain domain = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
             taskListener.getLogger().println("Looking for the virtual machine on Hypervisor...");
-            for (String domainName : computers.keySet()) {
-                if (virtualMachine.getName().equals(domainName)) {
-                    taskListener.getLogger().println("Virtual Machine Found");
-                    Domain domain = computers.get(domainName);
-
-                    if (domain.getInfo().state != DomainState.VIR_DOMAIN_BLOCKED && domain.getInfo().state != DomainState.VIR_DOMAIN_RUNNING) {
-                        taskListener.getLogger().println("Starting virtual machine");
-                        domain.create();
-                        taskListener.getLogger().println("Waiting " + WAIT_TIME + "ms for machine startup");
-                        Thread.sleep(WAIT_TIME);
-                    } else {
-                        taskListener.getLogger().println("Virtual machine is already running. No startup procedure required.");
-                    }
-                    taskListener.getLogger().println("Finished startup procedure... Connecting slave client");
-                    delegate.launch(slaveComputer, taskListener);
-                    return;
+            
+            if (domain != null) {
+                taskListener.getLogger().println("Virtual Machine Found");
+                if (domain.getInfo().state != DomainState.VIR_DOMAIN_BLOCKED && domain.getInfo().state != DomainState.VIR_DOMAIN_RUNNING) {
+                    taskListener.getLogger().println("Starting virtual machine");
+                    domain.create();
+                    taskListener.getLogger().println("Waiting " + WAIT_TIME + "ms for machine startup");
+                    Thread.sleep(WAIT_TIME);
+                } else {
+                    taskListener.getLogger().println("Virtual machine is already running. No startup procedure required.");
                 }
+                taskListener.getLogger().println("Finished startup procedure... Connecting slave client");
+                delegate.launch(slaveComputer, taskListener);
+                domain.free();
+                return;
             }
             taskListener.getLogger().println("Error! Could not find virtual machine on the hypervisor");
             throw new IOException("VM not found!");

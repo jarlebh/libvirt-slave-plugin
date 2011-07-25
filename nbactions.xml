@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>test.single</actionName>
+            <goals>
+                <goal>test-compile</goal>
+                <goal>surefire:test</goal>
+            </goals>
+            <properties>
+                <jna.library.path>C:/dev/Libvirt/bin;C:/dev/Libvirt/bin/libvirt.dll</jna.library.path>
+                <test>${className}</test>
+            </properties>
+        </action>
+    </actions>

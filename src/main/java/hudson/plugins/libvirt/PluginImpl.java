@@ -31,11 +31,9 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 
-
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
 
 public class PluginImpl extends Plugin {
 
@@ -52,6 +50,11 @@ public class PluginImpl extends Plugin {
     @Override
     public void stop() throws Exception {
         LOGGER.log(Level.FINE, "Stopping libvirt-slave plugin.");
+        for (Cloud cloud : Hudson.getInstance().clouds) {
+            if (cloud instanceof Hypervisor) {
+                ((Hypervisor)cloud).stop();
+            }
+        }
     }
 
     public void doComputerNameValues(StaplerRequest req, StaplerResponse rsp, @QueryParameter("value") String value) throws IOException, ServletException {

@@ -1,13 +1,13 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.jvnet.hudson.plugins</groupId>
+     <parent>
+        <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.347</version>
-        <relativePath>../pom.xml</relativePath>
+        <version>1.410</version>
     </parent>
 
-    <groupId>hudson.plugins.libvirt</groupId>
+
+    
     <artifactId>libvirt-slave</artifactId>
     <version>1.7-SNAPSHOT</version>
     <packaging>hpi</packaging>
@@ -15,24 +15,33 @@
     <url>http://wiki.hudson-ci.org/display/HUDSON/Libvirt+Slaves+Plugin</url>
 
     <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
-    <repositories>
+     <repositories>
         <repository>
-            <id>m.g.o-public</id>
-            <url>http://maven.glassfish.org/content/groups/public/</url>
+          <id>maven.jenkins-ci.org</id>
+          <url>http://maven.jenkins-ci.org/content/groups/artifacts/</url>
         </repository>
-    </repositories>
-
-    <pluginRepositories>
+      </repositories>      
+      <pluginRepositories>
         <pluginRepository>
-            <id>m.g.o-public</id>
-            <url>http://maven.glassfish.org/content/groups/public/</url>
+          <id>maven.jenkins-ci.org</id>
+          <url>http://maven.jenkins-ci.org/content/groups/artifacts/</url>
         </pluginRepository>
-    </pluginRepositories>
+      </pluginRepositories>
+
     <dependencies>
         <dependency>
             <groupId>org.libvirt</groupId>
             <artifactId>libvirt</artifactId>
-            <version>0.4.2</version>
+            <version>0.4.7</version>
+            <scope>system</scope>
+            <systemPath>C:\dev\jenkins\libvirt\target\libvirt-0.4.7.jar</systemPath>
+        </dependency>
+        <dependency>
+            <artifactId>jna</artifactId>
+            <groupId>net.java.dev.jna</groupId>
+            <type>jar</type>
+            <version>3.3.0</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
