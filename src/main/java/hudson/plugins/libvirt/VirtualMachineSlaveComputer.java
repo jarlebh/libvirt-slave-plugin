@@ -20,16 +20,17 @@
 
 package hudson.plugins.libvirt;
 
-import hudson.slaves.SlaveComputer;
 import hudson.model.Slave;
-import org.libvirt.Connect;
+import hudson.slaves.SlaveComputer;
+
+import com.vmware.vim25.mo.ServiceInstance;
 
 public class VirtualMachineSlaveComputer extends SlaveComputer {
 
     /**
      * Cached connection to the virtaul datacenter. Lazily fetched.
      */
-    private volatile Connect hypervisorConnection;
+    private volatile ServiceInstance hypervisorConnection;
 
     public VirtualMachineSlaveComputer(Slave slave) {
         super(slave);

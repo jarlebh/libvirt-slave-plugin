@@ -19,28 +19,41 @@
  */
 package hudson.plugins.libvirt;
 
-import hudson.slaves.ComputerLauncher;
-import hudson.slaves.SlaveComputer;
+import hudson.Extension;
 import hudson.model.TaskListener;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
-import hudson.Extension;
 import hudson.slaves.Cloud;
+import hudson.slaves.ComputerLauncher;
+import hudson.slaves.SlaveComputer;
 
 import java.io.IOException;
-import java.util.Map;
+import java.io.PrintStream;
+import java.rmi.RemoteException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.libvirt.Domain;
-import org.libvirt.DomainInfo.DomainState;
+
+import com.vmware.vim25.FileFault;
+import com.vmware.vim25.InsufficientResourcesFault;
+import com.vmware.vim25.InvalidState;
+import com.vmware.vim25.ManagedEntityStatus;
+import com.vmware.vim25.RuntimeFault;
+import com.vmware.vim25.TaskInProgress;
+import com.vmware.vim25.TaskInfoState;
+import com.vmware.vim25.ToolsUnavailable;
+import com.vmware.vim25.VirtualMachinePowerState;
+import com.vmware.vim25.VirtualMachineToolsStatus;
+import com.vmware.vim25.VmConfigFault;
+import com.vmware.vim25.mo.Task;
+import com.vmware.vim25.mo.VirtualMachine;
 
 public class VirtualMachineLauncher extends ComputerLauncher {
 
     private static final Logger LOGGER = Logger.getLogger(VirtualMachineLauncher.class.getName());
     private ComputerLauncher delegate;
-    private transient VirtualMachine virtualMachine;
+    private transient JenkinsVirtualMachine virtualMachine;
     private String hypervisorDescription;
     private String virtualMachineName;
     private static final int WAIT_TIME = 60000;
@@ -65,7 +78,7 @@ public class VirtualMachineLauncher extends ComputerLauncher {
                 }
             }
             LOGGER.log(Level.INFO, "Hypervisor found... getting Virtual Machines associated");
-            for (VirtualMachine vm : hypervisor.getVirtualMachines()) {
+            for (JenkinsVirtualMachine vm : hypervisor.getVirtualMachines()) {
                 if (vm.getName().equals(virtualMachineName)) {
                     virtualMachine = vm;
                     break;
@@ -78,7 +91,7 @@ public class VirtualMachineLauncher extends ComputerLauncher {
         return delegate;
     }
 
-    public VirtualMachine getVirtualMachine() {
+    public JenkinsVirtualMachine getVirtualMachine() {
         return virtualMachine;
     }
 
@@ -88,66 +101,111 @@ public class VirtualMachineLauncher extends ComputerLauncher {
     }
 
     @Override
-    public void launch(SlaveComputer slaveComputer, TaskListener taskListener)
-            throws IOException, InterruptedException {
-        taskListener.getLogger().println("Getting connection to the virtual datacenter");
+    public void launch(SlaveComputer slaveComputer, TaskListener taskListener) throws IOException, InterruptedException {
+        PrintStream logger =  taskListener.getLogger();
+        launchVM(logger);
+        delegate.launch(slaveComputer, taskListener);
+    }
+
+    public void launchVM(PrintStream logger) throws IOException {
+        logger.println("Getting connection to the virtual datacenter");
         if (virtualMachine == null) {
-            taskListener.getLogger().println("No connection ready to the Hypervisor... reconnecting...");
+            logger.println("No connection ready to the Hypervisor... reconnecting...");
             buildVirtualMachine();
         }
         try {
-            Domain domain = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
-            taskListener.getLogger().println("Looking for the virtual machine on Hypervisor...");
-            
+            VirtualMachine domain = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
+            logger.println("Looking for the virtual machine on Hypervisor...");
+
             if (domain != null) {
-                taskListener.getLogger().println("Virtual Machine Found");
-                if (domain.getInfo().state != DomainState.VIR_DOMAIN_BLOCKED && domain.getInfo().state != DomainState.VIR_DOMAIN_RUNNING) {
-                    taskListener.getLogger().println("Starting virtual machine");
-                    domain.create();
-                    taskListener.getLogger().println("Waiting " + WAIT_TIME + "ms for machine startup");
-                    Thread.sleep(WAIT_TIME);
-                } else {
-                    taskListener.getLogger().println("Virtual machine is already running. No startup procedure required.");
-                }
-                taskListener.getLogger().println("Finished startup procedure... Connecting slave client");
-                delegate.launch(slaveComputer, taskListener);
-                domain.free();
-                return;
+                logger.println("Virtual Machine Found: "+domain.getGuest().getGuestState());
+                ensureIsPowerOn(logger, domain);
+                logger.println("Finished startup procedure... Connecting slave client");
+            } else {
+                logger.println("Error! Could not find virtual machine on the hypervisor");
+                throw new IOException("VM not found!");
             }
-            taskListener.getLogger().println("Error! Could not find virtual machine on the hypervisor");
-            throw new IOException("VM not found!");
         } catch (IOException e) {
-            e.printStackTrace(taskListener.getLogger());
+            e.printStackTrace(logger);
             throw e;
         } catch (Throwable t) {
-            t.printStackTrace(taskListener.getLogger());
+            t.printStackTrace(logger);
+        }
+    }
+
+    public void ensureIsPowerOn(PrintStream logger, VirtualMachine domain) throws Exception {
+        if (domain.getRuntime().getPowerState() == VirtualMachinePowerState.poweredOff) {
+            logger.println("Starting virtual machine");
+            Task task = domain.powerOnVM_Task(null);
+            while(task.getTaskInfo().getState() == TaskInfoState.running) {
+                Thread.sleep(1000);
+                logger.println("Waiting for VM startup "+task.getTaskInfo().getProgress());
+            }
+            if (domain.getRuntime().getPowerState() != VirtualMachinePowerState.poweredOn) {
+                throw new RuntimeException("Could not start VM "+domain.getName()); 
+            }
+            long maxWait = (60 * 1000) * 5;
+            long starttime = System.currentTimeMillis();
+            while (domain.getGuest().getToolsStatus() == VirtualMachineToolsStatus.toolsNotRunning) {
+                Thread.sleep(1000);
+                long used = System.currentTimeMillis() - starttime;
+                logger.println("Waiting for OS startup waited:"+(used/1000));
+                if (used > maxWait) {
+                    throw new RuntimeException("Timeout waiting for vmware tools to start on "+domain.getName());
+                }
+            }
+            logger.println("VM has started");
+        } else {
+            logger.println("Virtual machine is already running. No startup procedure required.");
         }
     }
 
     @Override
     public void afterDisconnect(SlaveComputer slaveComputer, TaskListener taskListener) {
-        taskListener.getLogger().println("Running disconnect procedure...");
+        PrintStream logger = taskListener.getLogger();
+        logger.println("Running disconnect procedure...");
         delegate.afterDisconnect(slaveComputer, taskListener);
-        taskListener.getLogger().println("Shutting down Virtual Machine...");
+        logger.println("Shutting down Virtual Machine...");
         try {
-            Map<String, Domain> computers = virtualMachine.getHypervisor().getDomains();
-            taskListener.getLogger().println("Looking for the virtual machine on Hypervisor...");
-            for (String domainName : computers.keySet()) {
-                if (virtualMachine.getName().equals(domainName)) {
-                    Domain domain = computers.get(domainName);
-                    taskListener.getLogger().println("Virtual Machine Found");
-                    if (domain.getInfo().state.equals(DomainState.VIR_DOMAIN_RUNNING) || domain.getInfo().state.equals(DomainState.VIR_DOMAIN_BLOCKED)) {
-                        taskListener.getLogger().println("Shutting down virtual machine");
-                        domain.shutdown();
-                    } else {
-                        taskListener.getLogger().println("Virtual machine is already suspended. No shutdown procedure required.");
-                    }
-                    return;
-                }
-            }
-            taskListener.getLogger().println("Error! Could not find virtual machine on the hypervisor");
+            powerOffVM(logger);
         } catch (Throwable t) {
             taskListener.fatalError(t.getMessage(), t);
+        }
+    }
+
+    public void powerOffVM(PrintStream logger) throws Exception {
+            logger.println("Looking for the virtual machine on Hypervisor...");
+            VirtualMachine domain = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
+            if (domain != null) {
+                ensureIsPowerOff(logger, domain);
+            } else {
+                logger.println("Error! Could not find virtual machine on the hypervisor");
+            }
+        
+    }
+
+    public void ensureIsPowerOff(PrintStream logger, VirtualMachine domain) throws Exception {
+        logger.println("Virtual Machine Found");
+        if (domain.getRuntime().getPowerState() == VirtualMachinePowerState.poweredOn) {
+            logger.println("Shutting down virtual machine: "+domain.getGuest().getAppHeartbeatStatus());
+            if (domain.getGuest() != null && (domain.getGuest().getToolsStatus() == VirtualMachineToolsStatus.toolsOk || 
+                    domain.getGuest().getToolsStatus() == VirtualMachineToolsStatus.toolsOld)) {
+                domain.shutdownGuest();
+                logger.println("Soft shutdown, vmware guest tools works.");
+                
+            } else {
+                Task task = domain.powerOffVM_Task();
+                logger.println("Hard shutdown, no vmware guest tools installed.");
+                while(task.getTaskInfo().getState() == TaskInfoState.running) {
+                    Thread.sleep(1000);
+                    logger.println("Waiting for startup "+task.getTaskInfo().getProgress());
+                }
+                if (domain.getRuntime().getPowerState() != VirtualMachinePowerState.poweredOff) {
+                    throw new RuntimeException("Could not shutdown VM "+domain.getName()); 
+                }
+            }
+        } else {
+            logger.println("Virtual machine is already suspended. No shutdown procedure required.");
         }
     }
 
@@ -160,6 +218,7 @@ public class VirtualMachineLauncher extends ComputerLauncher {
     public Descriptor<ComputerLauncher> getDescriptor() {
         return Hudson.getInstance().getDescriptor(getClass());
     }
+
     @Extension
     public static final Descriptor<ComputerLauncher> DESCRIPTOR = new Descriptor<ComputerLauncher>() {
 

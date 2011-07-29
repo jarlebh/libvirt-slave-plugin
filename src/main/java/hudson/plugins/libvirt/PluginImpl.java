@@ -52,14 +52,15 @@ public class PluginImpl extends Plugin {
         LOGGER.log(Level.FINE, "Stopping libvirt-slave plugin.");
         for (Cloud cloud : Hudson.getInstance().clouds) {
             if (cloud instanceof Hypervisor) {
-                ((Hypervisor)cloud).stop();
+                ((Hypervisor) cloud).stop();
             }
         }
     }
 
-    public void doComputerNameValues(StaplerRequest req, StaplerResponse rsp, @QueryParameter("value") String value) throws IOException, ServletException {
+    public void doComputerNameValues(StaplerRequest req, StaplerResponse rsp, @QueryParameter("value") String value) throws IOException,
+            ServletException {
         ListBoxModel m = new ListBoxModel();
-        List<VirtualMachine> virtualMachines = null;
+        List<JenkinsVirtualMachine> virtualMachines = null;
         for (Cloud cloud : Hudson.getInstance().clouds) {
             if (cloud instanceof Hypervisor) {
                 Hypervisor hypervisor = (Hypervisor) cloud;
@@ -70,7 +71,7 @@ public class PluginImpl extends Plugin {
             }
         }
         if (virtualMachines != null) {
-            for (VirtualMachine vm : virtualMachines) {
+            for (JenkinsVirtualMachine vm : virtualMachines) {
                 m.add(new ListBoxModel.Option(vm.getName(), vm.getName()));
             }
             m.get(0).selected = true;
@@ -78,4 +79,3 @@ public class PluginImpl extends Plugin {
         m.writeTo(req, rsp);
     }
 }
-

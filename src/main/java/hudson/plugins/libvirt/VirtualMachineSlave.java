@@ -44,17 +44,15 @@ public class VirtualMachineSlave extends Slave {
     private String virtualMachineName;
 
     @DataBoundConstructor
-    public VirtualMachineSlave(String name, String nodeDescription, String remoteFS, String numExecutors,
-            Mode mode, String labelString, VirtualMachineLauncher launcher, ComputerLauncher delegateLauncher,
-            RetentionStrategy retentionStrategy, List<? extends NodeProperty<?>> nodeProperties,
-            String hypervisorDescription, String virtualMachineName)
-            throws
-            Descriptor.FormException, IOException {
+    public VirtualMachineSlave(String name, String nodeDescription, String remoteFS, String numExecutors, Mode mode, String labelString,
+            VirtualMachineLauncher launcher, ComputerLauncher delegateLauncher, RetentionStrategy retentionStrategy,
+            List<? extends NodeProperty<?>> nodeProperties, String hypervisorDescription, String virtualMachineName)
+            throws Descriptor.FormException, IOException {
         super(name, nodeDescription, remoteFS, Util.tryParseNumber(numExecutors, 1).intValue(), mode, labelString,
                 launcher == null ? new VirtualMachineLauncher(delegateLauncher, hypervisorDescription, virtualMachineName) : launcher,
-                retentionStrategy, nodeProperties);        
+                retentionStrategy, nodeProperties);
         this.hypervisorDescription = hypervisorDescription;
-        this.virtualMachineName = virtualMachineName;        
+        this.virtualMachineName = virtualMachineName;
     }
 
     public String getHypervisorDescription() {
@@ -76,8 +74,8 @@ public class VirtualMachineSlave extends Slave {
 
         private String hypervisorDescription;
         private String virtualMachineName;
-        
-        public DescriptorImpl() {            
+
+        public DescriptorImpl() {
             load();
         }
 
@@ -90,8 +88,8 @@ public class VirtualMachineSlave extends Slave {
             return true;
         }
 
-        public List<VirtualMachine> getDefinedVirtualMachines(String hypervisorDescription) {
-            List<VirtualMachine> virtualMachinesList = new ArrayList<VirtualMachine>();                       
+        public List<JenkinsVirtualMachine> getDefinedVirtualMachines(String hypervisorDescription) {
+            List<JenkinsVirtualMachine> virtualMachinesList = new ArrayList<JenkinsVirtualMachine>();
             if (hypervisorDescription != null && !hypervisorDescription.equals("")) {
                 Hypervisor hypervisor = null;
                 for (Cloud cloud : Hudson.getInstance().clouds) {
@@ -106,7 +104,7 @@ public class VirtualMachineSlave extends Slave {
         }
 
         public List<Hypervisor> getHypervisors() {
-            List<Hypervisor> result = new ArrayList<Hypervisor>();            
+            List<Hypervisor> result = new ArrayList<Hypervisor>();
             for (Cloud cloud : Hudson.getInstance().clouds) {
                 if (cloud instanceof Hypervisor) {
                     result.add((Hypervisor) cloud);
@@ -124,7 +122,7 @@ public class VirtualMachineSlave extends Slave {
             }
             return result;
         }
-        
+
         public String getHypervisorDescription() {
             return hypervisorDescription;
         }
@@ -132,6 +130,6 @@ public class VirtualMachineSlave extends Slave {
         public String getVirtualMachineName() {
             return virtualMachineName;
         }
-        
+
     }
 }
