@@ -1,4 +1,4 @@
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import hudson.Extension;
 import hudson.Launcher;
@@ -10,13 +10,14 @@ import hudson.slaves.Cloud;
 import hudson.tasks.BuildWrapper;
 import hudson.tasks.BuildWrapper.Environment;
 import hudson.tasks.BuildWrapperDescriptor;
+import hudson.util.ListBoxModel;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 
 public class VMWareBuildWrapper extends BuildWrapper {      
 
@@ -36,6 +37,15 @@ public class VMWareBuildWrapper extends BuildWrapper {
     public String getVirtualMachineName() {
         return virtualMachineName;
     }
+    
+    public void setHypervisorDescription(String hypervisorDescription) {
+        this.hypervisorDescription = hypervisorDescription;
+    }
+
+    public void setVirtualMachineName(String virtualMachineName) {
+        this.virtualMachineName = virtualMachineName;
+    }
+
 
     @Override
     public Environment setUp(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
@@ -55,8 +65,12 @@ public class VMWareBuildWrapper extends BuildWrapper {
             }
         };
     }
-    @Extension
+    @Extension(ordinal=999)
     public static class DescriptorImpl extends BuildWrapperDescriptor {
+        
+       // private String hypervisorDescription;
+       // private String virtualMachineName;
+        
         public DescriptorImpl() {
             super(VMWareBuildWrapper.class);
         }
@@ -66,6 +80,22 @@ public class VMWareBuildWrapper extends BuildWrapper {
             return "Start/stop virtual computer running on a virtualization platform";
         }
 
+        public ListBoxModel doFillHypervisorDescriptionItems() {
+            ListBoxModel model = new ListBoxModel();            
+            for (Hypervisor vis : getHypervisors()) {
+                model.add(vis.getHypervisorDescription(),vis.getHypervisorDescription());
+            }
+            return model;
+        }
+         
+        public ListBoxModel doFillVirtualMachineNameItems(@QueryParameter String hypervisorDescription) {
+            ListBoxModel model = new ListBoxModel();                      
+             for (JenkinsVirtualMachine mac : getDefinedVirtualMachines(hypervisorDescription)) {
+                 model.add(mac.getDisplayName(), mac.getName());
+             }
+             return model;
+        }
+        
         public List<JenkinsVirtualMachine> getDefinedVirtualMachines(String hypervisorDescription) {
             List<JenkinsVirtualMachine> virtualMachinesList = new ArrayList<JenkinsVirtualMachine>();
             if (hypervisorDescription != null && !hypervisorDescription.equals("")) {
@@ -88,7 +118,7 @@ public class VMWareBuildWrapper extends BuildWrapper {
                     result.add((Hypervisor) cloud);
                 }
             }
-            return result;
+                return result;
         }        
 
 
@@ -96,6 +126,15 @@ public class VMWareBuildWrapper extends BuildWrapper {
         public boolean isApplicable(AbstractProject<?, ?> item) {
             return true;
         }
+        
+        /*public String getHypervisorDescription() {
+            return hypervisorDescription;
+        }
+
+        public String getVirtualMachineName() {
+            return virtualMachineName;
+        }*/
+
 
     }
 }

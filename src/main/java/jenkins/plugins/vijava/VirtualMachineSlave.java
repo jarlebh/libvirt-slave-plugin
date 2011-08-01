@@ -17,7 +17,7 @@
  * Date: Mar 04, 2010
  * Author: Marco Mornati<mmornati@byte-code.com>
  */
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import hudson.model.Slave;
 import hudson.model.Descriptor;

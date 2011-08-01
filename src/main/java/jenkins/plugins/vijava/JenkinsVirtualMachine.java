@@ -18,7 +18,7 @@
  * Author: Marco Mornati<mmornati@byte-code.com>
  */
 
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 

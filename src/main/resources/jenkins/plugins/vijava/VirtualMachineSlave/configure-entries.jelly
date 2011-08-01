@@ -1,27 +1,13 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="${%Hypervisor}" field="hypervisorDescription" help="/plugin/libvirt-slave/help-libvirt-hypervisorUri.html">
-        <select class="setting-input" name="hypervisorDescription" value="${it.hypervisorDescription}"
-                onchange="updateListBox(document.getElementsByName('virtualMachineName')[0],'${rootURL}/plugin/libvirt-slave/computerNameValues?value='+encode(this.value))">
-            <option>Select an Hypervisor...</option>
-            <j:forEach var="d" items="${descriptor.getHypervisors()}" varStatus="loop">
-                <option selected="${d.hypervisorDescription==it.hypervisorDescription?'true':null}">
-                    ${d.hypervisorDescription}
-                </option>
-            </j:forEach>
-        </select>
+    <f:entry title="${%Hypervisor}" field="hypervisorDescription" help="/plugin/vmware-slave/help-libvirt-hypervisorUri.html">
+        <f:select clazz="setting-input" />
     </f:entry>
 
-    <f:entry title="${%Computer Name}" field="virtualMachineName" help="/plugin/libvirt-slave/help-libvirt-computerName.html">
-        <select class="setting-input" name="virtualMachineName" value="${instance.virtualMachineName}">
-            <j:forEach var="vc" items="${descriptor.getDefinedVirtualMachines(it.hypervisorDescription)}" varStatus="loop">
-                <option selected="${vc.name==it.virtualMachineName?'true':null}">
-                    ${vc.name}
-                </option>
-            </j:forEach>
-        </select>
+    <f:entry title="${%Computer Name}" field="virtualMachineName" help="/plugin/vmware-slave/help-libvirt-computerName.html">
+        <f:select clazz="setting-input" />
     </f:entry>
-
+   
     <f:entry title="${%Description}" help="/help/system-config/master-slave/description.html">
         <f:textbox field="nodeDescription"/>
     </f:entry>
@@ -42,21 +28,7 @@
 
     <f:dropdownList name="slave.delegateLauncher" title="${%Secondary launch method}"
                     help="${descriptor.getHelpFile('launcher')}">
-        <j:forEach var="d" items="${descriptor.getComputerLauncherDescriptors()}" varStatus="loop">
-            <f:dropdownListBlock value="${d.clazz.name}" name="${d.displayName}"
-                                 selected="${it.delegateLauncher.descriptor==d}"
-                                 title="${d.displayName}">
-                <j:set var="descriptor" value="${d}"/>
-                <j:set var="instance"
-                       value="${it.delegateLauncher.descriptor==d ? it.delegateLauncher : null}"/>
-                <tr>
-                    <td>
-                        <input type="hidden" name="stapler-class" value="${d.clazz.name}"/>
-                    </td>
-                </tr>
-                <st:include from="${d}" page="${d.configPage}" optional="true"/>
-            </f:dropdownListBlock>
-        </j:forEach>
+       <f:select clazz="setting-input" />
     </f:dropdownList>
 
     <!-- pointless to show this if there's only one option, which is the default -->

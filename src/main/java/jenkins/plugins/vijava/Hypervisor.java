@@ -17,7 +17,7 @@
  * Date: Mar 04, 2010
  * Author: Marco Mornati<mmornati@byte-code.com>
  */
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
@@ -60,8 +60,7 @@ import com.vmware.vim25.mo.VirtualMachine;
  */
 public class Hypervisor extends Cloud {
 
-    private static final Logger LOGGER = Logger.getLogger(Hypervisor.class.getName());
-    private final String hypervisorType;
+    private static final Logger LOGGER = Logger.getLogger(Hypervisor.class.getName());    
     private final String hypervisorHost;
     private final String hypervisorSystemUrl;
     private final int hypervisorSshPort;
@@ -69,15 +68,11 @@ public class Hypervisor extends Cloud {
     private final String password;
     private transient List<JenkinsVirtualMachine> virtualMachineList = null;
     private transient ServiceInstance hypervisorConnection = null;
-    private transient InventoryNavigator navigator = null;
-    private static final String ESX_HYPERVISOR = "ESX";
-    private static final String VPX_HYPERVISOR = "VPX";
-
+    private transient InventoryNavigator navigator = null;    
     @DataBoundConstructor
-    public Hypervisor(String hypervisorType, String hypervisorHost, int hypervisorSshPort, String hypervisorSystemUrl, String username,
+    public Hypervisor(String hypervisorHost, int hypervisorSshPort, String hypervisorSystemUrl, String username,
             String password) {
-        super("Hypervisor(libvirt)");
-        this.hypervisorType = hypervisorType;
+        super("Hypervisor(libvirt)");      
         this.hypervisorHost = hypervisorHost;
         if (hypervisorSystemUrl != null && !hypervisorSystemUrl.equals("")) {
             this.hypervisorSystemUrl = hypervisorSystemUrl;
@@ -90,20 +85,17 @@ public class Hypervisor extends Cloud {
         virtualMachineList = retrieveVirtualMachines();
     }
 
-    private static ServiceInstance makeConnection(String type, String host, String user, String password, int port, String systemURL) {
+    private static ServiceInstance makeConnection(String host, String user, String password, int port, String systemURL) throws VMWareException {
         ServiceInstance newConnection = null;
         URL hypervisorUri = null;
         try {
-            hypervisorUri = constructHypervisorURI(type, host, user, port, systemURL);
+            hypervisorUri = constructHypervisorURI(host, user, port, systemURL);
             LOGGER.log(Level.INFO, "Trying to establish a connection to hypervisor URI: {0} as {1}/******",
                     new Object[] { hypervisorUri, user });
             newConnection = new ServiceInstance(hypervisorUri, user, password, true);
             LOGGER.log(Level.INFO, "Established connection to hypervisor URI: {0} as {1}/******", new Object[] { hypervisorUri, user });
         } catch (Exception e) {
-            LogRecord rec = new LogRecord(Level.WARNING, "Failed to establish connection to hypervisor URI: {0} as {1}/******");
-            rec.setThrown(e);
-            rec.setParameters(new Object[] { hypervisorUri, user });
-            LOGGER.log(rec);
+            throw new VMWareException("Failed to connect to "+host, e);
         }
         return newConnection;
     }
@@ -116,10 +108,7 @@ public class Hypervisor extends Cloud {
                 vmList.add(new JenkinsVirtualMachine(this, domain.getKey()));
             }
         } catch (Exception e) {
-            LogRecord rec = new LogRecord(Level.SEVERE, "Cannot connect to datacenter {0} as {1}/******");
-            rec.setThrown(e);
-            rec.setParameters(new Object[] { hypervisorHost, username });
-            LOGGER.log(rec);
+            throw new RuntimeException(e.getMessage(), e);
         }
         return vmList;
     }
@@ -132,10 +121,6 @@ public class Hypervisor extends Cloud {
         return hypervisorSshPort;
     }
 
-    public String getHypervisorType() {
-        return hypervisorType;
-    }
-
     public String getHypervisorSystemUrl() {
         return hypervisorSystemUrl;
     }
@@ -144,13 +129,17 @@ public class Hypervisor extends Cloud {
         return username;
     }
 
+    public String getPassword() {
+        return password;
+    }
+    
     public String getHypervisorDescription() {
-        return getHypervisorType() + " - " + getHypervisorHost();
+        return getHypervisorHost();
     }
 
-    private ServiceInstance getConnection() {
+    private ServiceInstance getConnection() throws VMWareException {
         if (hypervisorConnection == null) {
-            hypervisorConnection = makeConnection(hypervisorType, hypervisorHost, username, password, hypervisorSshPort,
+            hypervisorConnection = makeConnection(hypervisorHost, username, password, hypervisorSshPort,
                     hypervisorSystemUrl);
         }
         return hypervisorConnection;
@@ -166,7 +155,7 @@ public class Hypervisor extends Cloud {
         return navigator;
     }
 
-    public VirtualMachine getDomain(String name) {
+    public VirtualMachine getDomain(String name) throws VMWareException {
         hypervisorConnection = getConnection();
         LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domain "+name);
         LOGGER.log(info);
@@ -175,30 +164,29 @@ public class Hypervisor extends Cloud {
             try {
                 mes = getRootNavigator(hypervisorConnection).searchManagedEntity("VirtualMachine",name);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to find domain "+name,e);
+                throw new VMWareException("Failed to find domain "+name,e);
             }
-            if (mes == null) {
-                return null;
-            }
+            info = new LogRecord(Level.INFO, "Found "+mes+ " for "+name);
+            LOGGER.log(info);
             return (VirtualMachine) mes;
-
         } else {
             return null;
         }
     }
 
-    public synchronized Map<String, VirtualMachine> getDomains() {
+    public Map<String, VirtualMachine> getDomains() throws VMWareException {
         Map<String, VirtualMachine> domains = new WeakHashMap<String, VirtualMachine>();
         hypervisorConnection = getConnection();
         LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domains");
         LOGGER.log(info);
         if (hypervisorConnection != null) {
+            virtualMachineList = null;
             try {
                 for (ManagedEntity c : getRootNavigator(hypervisorConnection).searchManagedEntities("VirtualMachine")) {
                     domains.put(c.getName(), (VirtualMachine) c);
                 }
             } catch (Exception e) {
-                throw new RuntimeException("Failed to find domains ",e);
+                throw new VMWareException("Failed to find domains ",e);
             }
         } else {
             LogRecord rec = new LogRecord(Level.SEVERE, "Cannot connect to datacenter {0} as {1}/******");
@@ -209,7 +197,7 @@ public class Hypervisor extends Cloud {
         return domains;
     }
 
-    public synchronized List<JenkinsVirtualMachine> getVirtualMachines() {
+    public List<JenkinsVirtualMachine> getVirtualMachines() {
         if (virtualMachineList == null) {
             virtualMachineList = retrieveVirtualMachines();
         }
@@ -239,15 +227,14 @@ public class Hypervisor extends Cloud {
         return (DescriptorImpl) super.getDescriptor();
     }
 
-    public static URL constructHypervisorURI(String type, String host, String user, int sshPort, String systemUrl) throws MalformedURLException {
+    public static URL constructHypervisorURI(String host, String user, int sshPort, String systemUrl) throws MalformedURLException {
         return new URL("https", host, "/sdk");
     }
 
     @Extension
     public static final class DescriptorImpl extends Descriptor<Cloud> {
 
-        public final ConcurrentMap<String, Hypervisor> hypervisors = new ConcurrentHashMap<String, Hypervisor>();
-        private String hypervisorType;
+        public final ConcurrentMap<String, Hypervisor> hypervisors = new ConcurrentHashMap<String, Hypervisor>();      
         private String hypervisorHost;
         private String hypervisorSystemUrl;
         private int hypervisorSshPort;
@@ -260,7 +247,7 @@ public class Hypervisor extends Cloud {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject o) throws FormException {
-            hypervisorType = o.getString("hypervisorType");
+            
             hypervisorHost = o.getString("hypervisorHost");
             hypervisorSystemUrl = o.getString("hypervisorSystemUrl");
             hypervisorSshPort = o.getInt("hypervisorSshPort");
@@ -270,16 +257,13 @@ public class Hypervisor extends Cloud {
             return super.configure(req, o);
         }
 
-        public FormValidation doTestConnection(@QueryParameter String hypervisorType, @QueryParameter String hypervisorHost,
+        public FormValidation doTestConnection(@QueryParameter String hypervisorHost,
                 @QueryParameter String hypervisorSshPort, @QueryParameter String username, @QueryParameter String password,
                 @QueryParameter String hypervisorSystemUrl) throws Exception, ServletException {
             try {
                 if (hypervisorHost == null) {
                     return FormValidation.error("Hypervisor Host is not specified");
-                }
-                if (hypervisorType == null) {
-                    return FormValidation.error("Hypervisor type is not specified");
-                }
+                }                
                 if (username == null) {
                     return FormValidation.error("Username is not specified");
                 }
@@ -289,9 +273,9 @@ public class Hypervisor extends Cloud {
                 if (hypervisorSshPort != null) {
                     port = Integer.valueOf(hypervisorSshPort);
                 }
-                rec.setParameters(new Object[] { constructHypervisorURI(hypervisorType, hypervisorHost, username, port, hypervisorSystemUrl) });
+                rec.setParameters(new Object[] { constructHypervisorURI(hypervisorHost, username, port, hypervisorSystemUrl) });
                 LOGGER.log(rec);
-                ServiceInstance testHypervisorConnection = makeConnection(hypervisorType, hypervisorHost, username, password, port,
+                ServiceInstance testHypervisorConnection = makeConnection(hypervisorHost, username, password, port,
                         hypervisorSystemUrl);
                 return FormValidation.ok("Connected successfully");
             } catch (Exception e) {
@@ -321,11 +305,7 @@ public class Hypervisor extends Cloud {
         public String getHypervisorSystemUrl() {
             return hypervisorSystemUrl;
         }
-
-        public String getHypervisorType() {
-            return hypervisorType;
-        }
-
+      
         public String getUsername() {
             return username;
         }
@@ -333,15 +313,7 @@ public class Hypervisor extends Cloud {
         public String getPassword() {
             return password;
         }
-
-        public List<String> getHypervisorTypes() {
-            List<String> types = new ArrayList<String>();
-            types.add("QEMU");
-            types.add("XEN");
-            types.add(ESX_HYPERVISOR);
-            types.add(VPX_HYPERVISOR);
-            return types;
-        }
+        
     }
 
     public void stop() {

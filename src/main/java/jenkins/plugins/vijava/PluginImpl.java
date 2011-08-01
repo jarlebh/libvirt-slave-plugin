@@ -17,7 +17,7 @@
  * Date: Mar 04, 2010
  * Author: Marco Mornati<mmornati@byte-code.com>
  */
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import hudson.Plugin;
 import hudson.model.Hudson;
@@ -41,7 +41,7 @@ public class PluginImpl extends Plugin {
 
     @Override
     public void start() throws Exception {
-        LOGGER.log(Level.FINE, "Starting libvirt-slave plugin");
+        LOGGER.log(Level.FINE, "Starting vmware-slave plugin");
     }
 
     /**
@@ -49,7 +49,7 @@ public class PluginImpl extends Plugin {
      */
     @Override
     public void stop() throws Exception {
-        LOGGER.log(Level.FINE, "Stopping libvirt-slave plugin.");
+        LOGGER.log(Level.FINE, "Stopping vmware-slave plugin.");
         for (Cloud cloud : Hudson.getInstance().clouds) {
             if (cloud instanceof Hypervisor) {
                 ((Hypervisor) cloud).stop();

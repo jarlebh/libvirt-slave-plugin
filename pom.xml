@@ -8,10 +8,10 @@
 
 
     
-    <artifactId>libvirt-slave</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <artifactId>vmware-slave</artifactId>
+    <version>1.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
-    <name>Hudson Libvirt Slaves plugin</name>
+    <name>Jenkins VMWare Slaves plugin</name>
     <url>http://wiki.hudson-ci.org/display/HUDSON/Libvirt+Slaves+Plugin</url>
 
     <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
@@ -19,6 +19,10 @@
         <repository>
           <id>m.g.o-public</id>
           <url>http://maven.jenkins-ci.org/content/groups/artifacts/</url>
+        </repository>
+        <repository>
+          <id>corena-public</id>
+          <url>http://repo.corena.com:8081/nexus/content/groups/public</url>
         </repository>
       </repositories>      
       <pluginRepositories>
@@ -31,15 +35,15 @@
 
     <developers>
         <developer>
-            <id>mmornati</id>
-            <name>Marco Mornati</name>
-            <email>mmornati@byte-code.com</email>
+            <id>jarlebh</id>
+            <name>Jarle B. Hjortland</name>
+            <email>jarlebh@gmail.com</email>
         </developer>
     </developers>
 
     <organization>
-        <name>Byte-Code</name>
-        <url>http://www.byte-code.com</url>
+        <name>Corena</name>
+        <url>http://www.corena.com</url>
     </organization>
     <build>
     	<pluginManagement>

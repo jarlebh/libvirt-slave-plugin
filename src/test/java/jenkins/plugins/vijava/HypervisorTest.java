@@ -2,8 +2,11 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
+import jenkins.plugins.vijava.JenkinsVirtualMachine;
+import jenkins.plugins.vijava.VirtualMachineLauncher;
+import jenkins.plugins.vijava.Hypervisor;
 import org.jvnet.hudson.test.HudsonTestCase;
 
 import com.sun.jna.Native;
@@ -24,11 +27,12 @@ public class HypervisorTest extends HudsonTestCase {
     }
 
     public void testCreation() throws Exception {
-         hp = new Hypervisor("ESX", "vmhost4.corena.no", 443 , "", "vmadmin", "Flax07%");
+         hp = new Hypervisor("vmhost4.corena.no", 443 , "", "vmadmin", "Flax07%");
         for (JenkinsVirtualMachine virtualMachine : hp.getVirtualMachines()) {
             VirtualMachine dom = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
+            System.out.println(virtualMachine + dom.getRuntime().getPowerState().toString()+":"+dom.getGuest().getGuestState());
             if (dom.getName().equals("servicesci")) {
-                System.out.println(virtualMachine + dom.getRuntime().getPowerState().toString()+":"+dom.getGuest().getGuestState());
+                
                 new VirtualMachineLauncher(null,  null, dom.getName()).ensureIsPowerOn(System.out, dom);
             }
             

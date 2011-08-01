@@ -17,7 +17,7 @@
  * Date: Mar 04, 2010
  * Author: Marco Mornati<mmornati@byte-code.com>
  */
-package hudson.plugins.libvirt;
+package jenkins.plugins.vijava;
 
 import hudson.Extension;
 import hudson.model.TaskListener;
@@ -78,6 +78,7 @@ public class VirtualMachineLauncher extends ComputerLauncher {
                 }
             }
             LOGGER.log(Level.INFO, "Hypervisor found... getting Virtual Machines associated");
+            
             for (JenkinsVirtualMachine vm : hypervisor.getVirtualMachines()) {
                 if (vm.getName().equals(virtualMachineName)) {
                     virtualMachine = vm;
@@ -128,8 +129,9 @@ public class VirtualMachineLauncher extends ComputerLauncher {
         } catch (IOException e) {
             e.printStackTrace(logger);
             throw e;
-        } catch (Throwable t) {
+        } catch (Exception t) {
             t.printStackTrace(logger);
+            throw new IOException(t.getMessage(), t);
         }
     }
 
