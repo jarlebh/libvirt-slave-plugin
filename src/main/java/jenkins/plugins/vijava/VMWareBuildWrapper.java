@@ -23,11 +23,12 @@ public class VMWareBuildWrapper extends BuildWrapper {
 
     private String hypervisorDescription;
     private String virtualMachineName;
-    
+    private Boolean stopWhenFinished;
     @DataBoundConstructor
-    public VMWareBuildWrapper(String hypervisorDescription, String virtualMachineName) {
+    public VMWareBuildWrapper(String hypervisorDescription, String virtualMachineName, Boolean stopWhenFinished) {
         this.hypervisorDescription = hypervisorDescription;
         this.virtualMachineName = virtualMachineName;
+        this.stopWhenFinished = stopWhenFinished;
     }
     
     public String getHypervisorDescription() {
@@ -37,7 +38,9 @@ public class VMWareBuildWrapper extends BuildWrapper {
     public String getVirtualMachineName() {
         return virtualMachineName;
     }
-    
+    public Boolean getStopWhenFinished() {
+        return stopWhenFinished;
+    }
     public void setHypervisorDescription(String hypervisorDescription) {
         this.hypervisorDescription = hypervisorDescription;
     }
@@ -54,12 +57,14 @@ public class VMWareBuildWrapper extends BuildWrapper {
         return new Environment() {
             public boolean tearDown( AbstractBuild build, BuildListener listener ) throws IOException, InterruptedException {
                 boolean result = true;
-                VirtualMachineLauncher vmLauncher = new VirtualMachineLauncher(null, hypervisorDescription, virtualMachineName);
-                try {
-                    vmLauncher.powerOffVM(listener.getLogger());
-                } catch (Exception e) {
-                    listener.fatalError(e.getMessage());
-                    result = false;
+                if (stopWhenFinished) {
+                    VirtualMachineLauncher vmLauncher = new VirtualMachineLauncher(null, hypervisorDescription, virtualMachineName);
+                    try {
+                        vmLauncher.powerOffVM(listener.getLogger());
+                    } catch (Exception e) {
+                        listener.fatalError(e.getMessage());
+                        result = false;
+                    }
                 }
                 return result;
             }
@@ -67,10 +72,7 @@ public class VMWareBuildWrapper extends BuildWrapper {
     }
     @Extension(ordinal=999)
     public static class DescriptorImpl extends BuildWrapperDescriptor {
-        
-       // private String hypervisorDescription;
-       // private String virtualMachineName;
-        
+               
         public DescriptorImpl() {
             super(VMWareBuildWrapper.class);
         }
@@ -126,15 +128,6 @@ public class VMWareBuildWrapper extends BuildWrapper {
         public boolean isApplicable(AbstractProject<?, ?> item) {
             return true;
         }
-        
-        /*public String getHypervisorDescription() {
-            return hypervisorDescription;
-        }
-
-        public String getVirtualMachineName() {
-            return virtualMachineName;
-        }*/
-
-
+  
     }
 }

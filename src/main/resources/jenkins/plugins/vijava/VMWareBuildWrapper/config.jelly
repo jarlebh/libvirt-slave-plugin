@@ -1,9 +1,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-     <f:entry name="hypervisorDescription" field="hypervisorDescription" help="/plugin/vmware-slave/help-libvirt-hypervisorUri.html">                   
+     <f:entry title="${%Hypervisor}" name="hypervisorDescription" field="hypervisorDescription" help="/plugin/vmware-slave/help-libvirt-hypervisorUri.html">                   
         <f:select clazz="setting-input" />
      </f:entry>
-     <f:entry name="virtualMachineName" field="virtualMachineName" help="/plugin/vmware-slave/help-libvirt-computerName.html">                   
+     <f:entry title="${%Computer Name}" name="virtualMachineName" field="virtualMachineName" help="/plugin/vmware-slave/help-libvirt-computerName.html">                   
         <f:select clazz="setting-input" />
+     </f:entry>
+     <f:entry title="${%Stop When Finished}" name="stopWhenFinished" field="stopWhenFinished" help="/plugin/vmware-slave/help-vijava-stopWhenFinished.html">                   
+        <f:checkbox clazz="setting-input"  default="true" />
      </f:entry>
 </j:jelly>

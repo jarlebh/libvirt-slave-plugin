@@ -66,8 +66,7 @@ public class Hypervisor extends Cloud {
     private final int hypervisorSshPort;
     private final String username;
     private final String password;
-    private transient List<JenkinsVirtualMachine> virtualMachineList = null;
-    private transient ServiceInstance hypervisorConnection = null;
+    private transient List<JenkinsVirtualMachine> virtualMachineList = null;    
     
     @DataBoundConstructor
     public Hypervisor(String hypervisorHost, int hypervisorSshPort, String hypervisorSystemUrl, String username,
@@ -138,15 +137,12 @@ public class Hypervisor extends Cloud {
     }
 
     private ServiceInstance getConnection() throws VMWareException {
-        if (hypervisorConnection == null || hypervisorConnection.getServerConnection() == null) {
-            hypervisorConnection = makeConnection(hypervisorHost, username, password, hypervisorSshPort,
+         return makeConnection(hypervisorHost, username, password, hypervisorSshPort,
                     hypervisorSystemUrl);
-        }
-        return hypervisorConnection;
     }
 
     public InventoryNavigator getRootNavigator(ServiceInstance instance) {        
-        Folder rootFolder = hypervisorConnection.getRootFolder();
+        Folder rootFolder = instance.getRootFolder();
         String rootName = rootFolder.getName();
         System.out.println("root:" + rootName);
         return  new InventoryNavigator(rootFolder);
@@ -154,7 +150,7 @@ public class Hypervisor extends Cloud {
     }
 
     public VirtualMachine getDomain(String name) throws VMWareException {
-        hypervisorConnection = getConnection();
+        ServiceInstance hypervisorConnection = getConnection();
         LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domain "+name+" on "+hypervisorConnection);
         LOGGER.log(info);
         if (hypervisorConnection != null) {
@@ -174,7 +170,7 @@ public class Hypervisor extends Cloud {
 
     public Map<String, VirtualMachine> getDomains() throws VMWareException {
         Map<String, VirtualMachine> domains = new WeakHashMap<String, VirtualMachine>();
-        hypervisorConnection = getConnection();
+        ServiceInstance hypervisorConnection = getConnection();
         LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domains");
         LOGGER.log(info);
         if (hypervisorConnection != null) {
@@ -315,13 +311,6 @@ public class Hypervisor extends Cloud {
     }
 
     public void stop() {
-        if (hypervisorConnection != null) {
-            if (hypervisorConnection.getServerConnection() != null) {
-                hypervisorConnection.getServerConnection().logout();
-            }
-            hypervisorConnection = null;
-
-        }
-
+        
     }
 }
