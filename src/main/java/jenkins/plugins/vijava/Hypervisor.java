@@ -68,7 +68,7 @@ public class Hypervisor extends Cloud {
     private final String password;
     private transient List<JenkinsVirtualMachine> virtualMachineList = null;
     private transient ServiceInstance hypervisorConnection = null;
-    private transient InventoryNavigator navigator = null;    
+    
     @DataBoundConstructor
     public Hypervisor(String hypervisorHost, int hypervisorSshPort, String hypervisorSystemUrl, String username,
             String password) {
@@ -138,26 +138,24 @@ public class Hypervisor extends Cloud {
     }
 
     private ServiceInstance getConnection() throws VMWareException {
-        if (hypervisorConnection == null) {
+        if (hypervisorConnection == null || hypervisorConnection.getServerConnection() == null) {
             hypervisorConnection = makeConnection(hypervisorHost, username, password, hypervisorSshPort,
                     hypervisorSystemUrl);
         }
         return hypervisorConnection;
     }
 
-    public InventoryNavigator getRootNavigator(ServiceInstance instance) {
-        if (navigator == null) {
-            Folder rootFolder = hypervisorConnection.getRootFolder();
-            String rootName = rootFolder.getName();
-            System.out.println("root:" + rootName);
-            navigator = new InventoryNavigator(rootFolder);
-        }
-        return navigator;
+    public InventoryNavigator getRootNavigator(ServiceInstance instance) {        
+        Folder rootFolder = hypervisorConnection.getRootFolder();
+        String rootName = rootFolder.getName();
+        System.out.println("root:" + rootName);
+        return  new InventoryNavigator(rootFolder);
+     
     }
 
     public VirtualMachine getDomain(String name) throws VMWareException {
         hypervisorConnection = getConnection();
-        LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domain "+name);
+        LogRecord info = new LogRecord(Level.INFO, "Getting hypervisor domain "+name+" on "+hypervisorConnection);
         LOGGER.log(info);
         if (hypervisorConnection != null) {
             ManagedEntity mes;
@@ -170,7 +168,7 @@ public class Hypervisor extends Cloud {
             LOGGER.log(info);
             return (VirtualMachine) mes;
         } else {
-            return null;
+            throw new VMWareException("Could not connect to vmware "+hypervisorHost, null);
         }
     }
 

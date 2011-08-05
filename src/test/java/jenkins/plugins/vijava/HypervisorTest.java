@@ -37,6 +37,16 @@ public class HypervisorTest extends HudsonTestCase {
             }
             
         }
+        Hypervisor hp2 = new Hypervisor("vc00.corenagroup.local", 443 , "", "asadmin", "Life77sys");
+        for (JenkinsVirtualMachine virtualMachine : hp2.getVirtualMachines()) {
+            VirtualMachine dom = virtualMachine.getHypervisor().getDomain(virtualMachine.getName());
+            System.out.println(virtualMachine + dom.getRuntime().getPowerState().toString()+":"+dom.getGuest().getGuestState());
+            if (dom.getName().equals("servicesci")) {
+                
+                new VirtualMachineLauncher(null,  null, dom.getName()).ensureIsPowerOn(System.out, dom);
+            }
+            
+        }
 //        Thread th = new MyThread();
 //        Thread th1 = new MyThread();
 //        Thread th2 = new MyThread();
